@@ -1,5 +1,5 @@
-import React from 'react';
-import { Plus, ChevronRight, Users, ClipboardList, Database, BarChart3 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Plus, ChevronRight, Users, ClipboardList, Database, BarChart3, Search, X } from 'lucide-react';
 import { AppData, Classroom, TestRecord } from '../types';
 import { Translations } from '../i18n';
 import { computeTestResults } from '../utils/calculations';
@@ -26,12 +26,27 @@ export const HomeView: React.FC<HomeViewProps> = ({
   onLoadDemoData,
 }) => {
   const isUrdu = data.settings.language === 'ur';
+  const [searchQuery, setSearchQuery] = useState('');
+
   const sortedTests = [...data.tests].sort(
     (a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt
   );
 
   const getClassById = (id: string): Classroom | undefined =>
     data.classes.find((c) => c.id === id);
+
+  const trimmedQuery = searchQuery.trim().toLowerCase();
+  const matchingStudents = trimmedQuery
+    ? data.classes.flatMap((cls) =>
+        cls.students
+          .filter(
+            (stu) =>
+              stu.name.toLowerCase().includes(trimmedQuery) ||
+              stu.rollNumber.toLowerCase().includes(trimmedQuery)
+          )
+          .map((stu) => ({ stu, cls }))
+      )
+    : [];
 
   return (
     <div className="space-y-6">
@@ -86,6 +101,69 @@ export const HomeView: React.FC<HomeViewProps> = ({
             )}
           </div>
         </div>
+      </section>
+
+      {/* Student Search Bar */}
+      <section className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 sm:p-4 space-y-3">
+        <div className="relative flex items-center">
+          <Search className="w-4 h-4 text-slate-400 absolute start-3.5 pointer-events-none" />
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={t.searchStudentsPlaceholder}
+            aria-label={t.searchStudentsPlaceholder}
+            className={`w-full min-h-[44px] ps-10 pe-11 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0F2547] dark:focus:ring-amber-400 ${
+              isUrdu ? 'font-urdu' : ''
+            }`}
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              aria-label="Clear search"
+              className="absolute end-1 min-h-[40px] min-w-[40px] flex items-center justify-center rounded-lg text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+
+        {trimmedQuery && (
+          <div className="pt-1 border-t border-slate-100 dark:border-slate-800">
+            {matchingStudents.length === 0 ? (
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 py-3 text-center">
+                {t.noMatchingStudents}
+              </p>
+            ) : (
+              <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-72 overflow-y-auto">
+                {matchingStudents.map(({ stu, cls }) => (
+                  <button
+                    key={`${cls.id}-${stu.id}`}
+                    type="button"
+                    onClick={() => onOpenClass(cls.id)}
+                    className="w-full min-h-[48px] py-2.5 px-1 flex items-center justify-between gap-3 text-start hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-lg transition-colors cursor-pointer"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
+                        <span className="font-mono-nums text-[#0F2547] dark:text-amber-400 me-2">
+                          #{stu.rollNumber}
+                        </span>
+                        {stu.name}
+                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                        {[cls.name, stu.fatherName, stu.parentPhone]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </p>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">

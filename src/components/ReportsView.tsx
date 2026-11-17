@@ -130,6 +130,13 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
           language: settings.language,
         }),
       });
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        throw new Error(
+          'AI remarks require the app server and are unavailable on static hosting (such as GitHub Pages). You can type or edit remarks manually.'
+        );
+      }
+
       const json = await res.json();
       if (!res.ok) {
         throw new Error(json.error || 'Could not generate AI remark.');

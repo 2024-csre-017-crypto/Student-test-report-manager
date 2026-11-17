@@ -9,6 +9,7 @@ import {
   Check,
   AlertCircle,
   BookOpen,
+  Search,
 } from 'lucide-react';
 import { Classroom, Student } from '../types';
 import { Translations } from '../i18n';
@@ -67,6 +68,20 @@ export const ClassesView: React.FC<ClassesViewProps> = ({
   // Edit class name inline
   const [editingClassName, setEditingClassName] = useState(false);
   const [classNameDraft, setClassNameDraft] = useState('');
+
+  // Student search filter
+  const [studentSearch, setStudentSearch] = useState('');
+
+  const trimmedStudentSearch = studentSearch.trim().toLowerCase();
+  const filteredStudents = activeClass
+    ? trimmedStudentSearch
+      ? activeClass.students.filter(
+          (stu) =>
+            stu.name.toLowerCase().includes(trimmedStudentSearch) ||
+            stu.rollNumber.toLowerCase().includes(trimmedStudentSearch)
+        )
+      : activeClass.students
+    : [];
 
   const handleCreateClass = (e: React.FormEvent) => {
     e.preventDefault();
@@ -234,6 +249,7 @@ export const ClassesView: React.FC<ClassesViewProps> = ({
                   onClick={() => {
                     onSelectClass(cls.id);
                     setImportPreview(null);
+                    setStudentSearch('');
                   }}
                   className={`min-h-[44px] px-4 py-2 rounded-xl text-sm font-semibold transition-colors cursor-pointer whitespace-nowrap ${
                     selected
@@ -632,16 +648,45 @@ export const ClassesView: React.FC<ClassesViewProps> = ({
               </div>
             )}
 
+            {/* Student Search Bar */}
+            {activeClass.students.length > 0 && (
+              <div className="relative flex items-center">
+                <Search className="w-4 h-4 text-slate-400 absolute start-3.5 pointer-events-none" />
+                <input
+                  type="search"
+                  value={studentSearch}
+                  onChange={(e) => setStudentSearch(e.target.value)}
+                  placeholder={t.searchStudentsPlaceholder}
+                  aria-label={t.searchStudentsPlaceholder}
+                  className="w-full min-h-[44px] ps-10 pe-11 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0F2547] dark:focus:ring-amber-400"
+                />
+                {studentSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setStudentSearch('')}
+                    aria-label="Clear search"
+                    className="absolute end-1 min-h-[40px] min-w-[40px] flex items-center justify-center rounded-lg text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            )}
+
             {/* Students List: Cards on mobile, Table on desktop */}
             {activeClass.students.length === 0 ? (
               <p className="text-sm text-slate-500 dark:text-slate-400 py-6 text-center">
                 No students in this class yet. Add one above or import from CSV / Excel.
               </p>
+            ) : filteredStudents.length === 0 ? (
+              <p className="text-sm text-slate-500 dark:text-slate-400 py-6 text-center">
+                {t.noMatchingStudents}
+              </p>
             ) : (
               <>
                 {/* Mobile Card List */}
                 <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
-                  {activeClass.students.map((stu) => (
+                  {filteredStudents.map((stu) => (
                     <div
                       key={stu.id}
                       className="py-3 flex items-center justify-between gap-3"
@@ -694,7 +739,7 @@ export const ClassesView: React.FC<ClassesViewProps> = ({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                      {activeClass.students.map((stu) => (
+                      {filteredStudents.map((stu) => (
                         <tr key={stu.id}>
                           <td className="py-2.5 px-3 font-mono-nums font-semibold text-[#0F2547] dark:text-amber-400">
                             {stu.rollNumber}

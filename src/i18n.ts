@@ -100,6 +100,8 @@ export interface Translations {
   dateLabel: string;
   subjectLabel: string;
   urduPdfNotice: string;
+  searchStudentsPlaceholder: string;
+  noMatchingStudents: string;
 }
 
 const en: Translations = {
@@ -203,6 +205,8 @@ const en: Translations = {
   subjectLabel: 'Subject',
   urduPdfNotice:
     'Note: Direct PDF export uses built-in Latin fonts and cannot shape Urdu Nastaliq script. Use the Print button and select "Save as PDF" for crisp Urdu Nastaliq report cards.',
+  searchStudentsPlaceholder: 'Search students by name or roll number...',
+  noMatchingStudents: 'No matching students found.',
 };
 
 const ur: Translations = {
@@ -306,6 +310,8 @@ const ur: Translations = {
   subjectLabel: 'مضمون',
   urduPdfNotice:
     'نوٹ: براہِ راست PDF ڈاؤن لوڈ میں اردو نستعلیق رسم الخط درست نہیں آتا۔ صاف اردو نستعلیق رپورٹ کارڈ کے لیے "پرنٹ / PDF محفوظ کریں" بٹن استعمال کریں اور Save as PDF منتخب کریں۔',
+  searchStudentsPlaceholder: 'نام یا رول نمبر سے طالب علم تلاش کریں...',
+  noMatchingStudents: 'کوئی مماثل طالب علم نہیں ملا۔',
 };
 
 export function getTranslations(lang: AppLanguage): Translations {

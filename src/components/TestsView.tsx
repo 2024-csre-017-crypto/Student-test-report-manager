@@ -265,6 +265,13 @@ export const TestsView: React.FC<TestsViewProps> = ({
         }),
       });
 
+      const contentType = response.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        throw new Error(
+          'AI remarks require the app server and are unavailable on static hosting (such as GitHub Pages). You can type or edit remarks manually.'
+        );
+      }
+
       const json = await response.json();
       if (!response.ok) {
         throw new Error(json.error || 'Could not generate AI remark.');
