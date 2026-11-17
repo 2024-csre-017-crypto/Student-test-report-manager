@@ -8,21 +8,36 @@
   actions:
   - action: ./gradlew assembleDebug
     type: BUILD
-    commands: |-
-      export ANDROID_HOME="/opt/android/sdk"
-      export PATH=$PATH:/opt/android/sdk/cmdline-tools/tools/bin
-      if [ ! -d "$ANDROID_HOME/cmdline-tools" ]; then
-       curl -o sdk.zip https://dl.google.com/android/repository/commandlinetools-linux-7583922_latest.zip
-       unzip sdk.zip
-       rm sdk.zip
-       mkdir "$ANDROID_HOME/cmdline-tools"
-       mv cmdline-tools "$ANDROID_HOME/cmdline-tools/tools"
-       yes | "$ANDROID_HOME/cmdline-tools/tools/bin/sdkmanager" --licenses
+    commands: |2
+
+      # Find Android project Gradle Wrapper
+      set -e
+
+      echo "Searching for gradlew..."
+
+      WRAPPER=$(find "$PWD" -type f -name gradlew -print -quit)
+
+      if [ -z "$WRAPPER" ]; then
+          echo "ERROR: gradlew not found!"
+          echo "Repository files:"
+          ls -la
+          echo "Searching project folders:"
+          find . -maxdepth 4 -type f | head -100
+          exit 1
       fi
 
-      chmod +x gradlew
-      #./gradlew assembleDebug
+      # Go to Android project root
+      PROJECT_DIR=$(dirname "$WRAPPER")
+      cd "$PROJECT_DIR"
+
+      echo "Project directory:"
+      pwd
+
+      # Build Debug APK
+      chmod +x ./gradlew
       ./gradlew assembleDebug
+
+      echo "APK BUILD COMPLETED!"
     setup_commands: apt-get update && apt-get install -y unzip curl
     cached_dirs:
     - /root/.gradle
