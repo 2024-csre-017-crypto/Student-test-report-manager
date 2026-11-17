@@ -10,6 +10,9 @@ import {
   Moon,
   Sparkles,
   AlertTriangle,
+  LogOut,
+  LogIn,
+  Cloud,
 } from 'lucide-react';
 import { AppData, AppSettings, GradeBand } from '../types';
 import { Translations } from '../i18n';
@@ -22,6 +25,11 @@ import {
 interface SettingsViewProps {
   data: AppData;
   t: Translations;
+  userEmail: string | null;
+  userName: string | null;
+  syncStatus: 'synced' | 'syncing' | 'local';
+  onSignOut: () => void;
+  onOpenLogin: () => void;
   onUpdateSettings: (next: AppSettings) => void;
   onRestoreData: (restored: AppData) => void;
   onClearAllData: () => void;
@@ -30,6 +38,11 @@ interface SettingsViewProps {
 export const SettingsView: React.FC<SettingsViewProps> = ({
   data,
   t,
+  userEmail,
+  userName,
+  syncStatus,
+  onSignOut,
+  onOpenLogin,
   onUpdateSettings,
   onRestoreData,
   onClearAllData,
@@ -111,6 +124,51 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
   return (
     <div className="space-y-5 max-w-4xl mx-auto">
+      {/* Account & Cloud Sync */}
+      <section className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <h2 className="text-base sm:text-lg font-bold text-[#0F2547] dark:text-slate-100 flex items-center gap-2">
+            <Cloud className="w-5 h-5 text-[#B8860B] dark:text-amber-400" />
+            <span>Account & Saved Work</span>
+          </h2>
+          {userEmail ? (
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300">
+              Signed in as <span className="font-semibold">{userName || userEmail}</span>
+              {userName ? ` (${userEmail})` : ''} ·{' '}
+              <span className="font-medium text-emerald-700 dark:text-emerald-400">
+                {syncStatus === 'syncing' ? 'Saving to cloud...' : 'Saved to cloud'}
+              </span>
+            </p>
+          ) : (
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300">
+              Currently in local device mode. Sign in with Google to save your work across devices and sessions.
+            </p>
+          )}
+        </div>
+
+        <div className="shrink-0">
+          {userEmail ? (
+            <button
+              type="button"
+              onClick={onSignOut}
+              className="min-h-[44px] px-4 rounded-xl border border-slate-300 dark:border-slate-700 text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2 cursor-pointer whitespace-nowrap"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Sign Out</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={onOpenLogin}
+              className="min-h-[44px] px-4 rounded-xl bg-[#0F2547] hover:bg-[#16325C] dark:bg-amber-500 dark:text-slate-950 text-white text-xs sm:text-sm font-semibold flex items-center gap-2 cursor-pointer whitespace-nowrap"
+            >
+              <LogIn className="w-4 h-4" />
+              <span>Sign in with Google</span>
+            </button>
+          )}
+        </div>
+      </section>
+
       {/* School Identity */}
       <section className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 sm:p-5 space-y-4">
         <h2 className="text-base sm:text-lg font-bold text-[#0F2547] dark:text-slate-100">

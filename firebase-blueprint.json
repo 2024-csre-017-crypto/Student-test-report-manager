@@ -1,0 +1,179 @@
+{
+  "entities": {
+    "UserWorkspace": {
+      "title": "UserWorkspace",
+      "description": "Teacher account profile and application settings stored per authenticated user.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the teacher."
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Authenticated user email."
+        },
+        "displayName": {
+          "type": "string",
+          "maxLength": 120,
+          "description": "Teacher display name."
+        },
+        "settings": {
+          "type": "object",
+          "description": "School name, logo DataURL, grading scale, pass percentage, signatures, language, theme, and AI setting."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when workspace was created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when workspace was last updated."
+        }
+      },
+      "required": ["ownerId", "settings", "createdAt", "updatedAt"]
+    },
+    "Classroom": {
+      "title": "Classroom",
+      "description": "A school class with its subjects and enrolled students.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the owning teacher."
+        },
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Class document ID."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Class display name."
+        },
+        "subjects": {
+          "type": "array",
+          "description": "Ordered list of subject names (max 30)."
+        },
+        "students": {
+          "type": "array",
+          "description": "List of enrolled student objects (max 250)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of creation."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of last update."
+        }
+      },
+      "required": ["ownerId", "id", "name", "subjects", "students", "createdAt", "updatedAt"]
+    },
+    "TestRecord": {
+      "title": "TestRecord",
+      "description": "A single test for a class including subject totals, marks, remarks, and attendance.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the owning teacher."
+        },
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Test document ID."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160,
+          "description": "Test name."
+        },
+        "date": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Test date in YYYY-MM-DD format."
+        },
+        "classId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Referenced Classroom ID."
+        },
+        "subjectTotals": {
+          "type": "object",
+          "description": "Map of subject name to total marks."
+        },
+        "passPercentage": {
+          "type": "number",
+          "description": "Minimum pass percentage (0-100)."
+        },
+        "marks": {
+          "type": "object",
+          "description": "Map of studentId -> subject -> numeric mark, 'ABSENT', or null."
+        },
+        "remarks": {
+          "type": "object",
+          "description": "Map of studentId -> teacher remark."
+        },
+        "attendance": {
+          "type": "object",
+          "description": "Map of studentId -> attendance string."
+        },
+        "clientCreatedAt": {
+          "type": "number",
+          "description": "Numeric ordering timestamp."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of creation."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of last update."
+        }
+      },
+      "required": [
+        "ownerId",
+        "id",
+        "name",
+        "date",
+        "classId",
+        "subjectTotals",
+        "passPercentage",
+        "marks",
+        "remarks",
+        "attendance",
+        "clientCreatedAt",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserWorkspace" },
+      "description": "Per-teacher root workspace and settings document."
+    },
+    "/users/{userId}/classes/{classId}": {
+      "schema": { "$ref": "#/entities/Classroom" },
+      "description": "Classes owned by the teacher."
+    },
+    "/users/{userId}/tests/{testId}": {
+      "schema": { "$ref": "#/entities/TestRecord" },
+      "description": "Tests and student marks owned by the teacher."
+    }
+  }
+}

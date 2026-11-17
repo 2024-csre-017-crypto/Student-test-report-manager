@@ -1,0 +1,217 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global safety net: deny everything by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isOwner(userId) {
+      return isVerified() && request.auth.uid == userId;
+    }
+
+    function isValidSettingsMap(s) {
+      return s is map
+        && s.keys().hasAll([
+          'schoolName',
+          'gradingScale',
+          'defaultPassPercentage',
+          'classTeacherName',
+          'principalName',
+          'language',
+          'theme',
+          'aiRemarksEnabled'
+        ])
+        && s.keys().hasOnly([
+          'schoolName',
+          'schoolLogoDataUrl',
+          'gradingScale',
+          'defaultPassPercentage',
+          'classTeacherName',
+          'principalName',
+          'language',
+          'theme',
+          'aiRemarksEnabled'
+        ])
+        && s.schoolName is string && s.schoolName.size() <= 160
+        && (!('schoolLogoDataUrl' in s) || (s.schoolLogoDataUrl is string && s.schoolLogoDataUrl.size() <= 300000))
+        && s.gradingScale is list && s.gradingScale.size() >= 1 && s.gradingScale.size() <= 20
+        && s.gradingScale[0] is map
+        && s.defaultPassPercentage is number && s.defaultPassPercentage >= 0 && s.defaultPassPercentage <= 100
+        && s.classTeacherName is string && s.classTeacherName.size() <= 120
+        && s.principalName is string && s.principalName.size() <= 120
+        && s.language in ['en', 'ur']
+        && s.theme in ['light', 'dark']
+        && s.aiRemarksEnabled is bool;
+    }
+
+    function isValidUserWorkspace(data, userId) {
+      return data.keys().hasAll(['ownerId', 'settings', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['ownerId', 'email', 'displayName', 'settings', 'createdAt', 'updatedAt'])
+        && data.ownerId is string && data.ownerId == request.auth.uid && data.ownerId == userId
+        && (!('email' in data) || (data.email is string && data.email.size() <= 200))
+        && (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 120))
+        && isValidSettingsMap(data.settings)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidClassroom(data, classId) {
+      return data.keys().hasAll(['ownerId', 'id', 'name', 'subjects', 'students', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['ownerId', 'id', 'name', 'subjects', 'students', 'createdAt', 'updatedAt'])
+        && data.ownerId is string && data.ownerId == request.auth.uid
+        && isValidId(data.id) && data.id == classId
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 120
+        && data.subjects is list && data.subjects.size() <= 30
+        && (data.subjects.size() == 0 || data.subjects[0] is string)
+        && data.students is list && data.students.size() <= 250
+        && (data.students.size() == 0 || data.students[0] is map)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidTestRecord(data, testId) {
+      return data.keys().hasAll([
+        'ownerId',
+        'id',
+        'name',
+        'date',
+        'classId',
+        'subjectTotals',
+        'passPercentage',
+        'marks',
+        'remarks',
+        'attendance',
+        'clientCreatedAt',
+        'createdAt',
+        'updatedAt'
+      ])
+        && data.keys().hasOnly([
+          'ownerId',
+          'id',
+          'name',
+          'date',
+          'classId',
+          'subjectTotals',
+          'passPercentage',
+          'marks',
+          'remarks',
+          'attendance',
+          'clientCreatedAt',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.ownerId is string && data.ownerId == request.auth.uid
+        && isValidId(data.id) && data.id == testId
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 160
+        && data.date is string && data.date.size() == 10 && data.date.matches('^\\d{4}-\\d{2}-\\d{2}$')
+        && isValidId(data.classId)
+        && data.subjectTotals is map && data.subjectTotals.size() <= 30
+        && data.passPercentage is number && data.passPercentage >= 0 && data.passPercentage <= 100
+        && data.marks is map && data.marks.size() <= 250
+        && data.remarks is map && data.remarks.size() <= 250
+        && data.attendance is map && data.attendance.size() <= 250
+        && data.clientCreatedAt is number
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    match /users/{userId} {
+      allow get: if isValidId(userId) && isOwner(userId);
+      allow list: if false;
+      allow create: if isValidId(userId)
+        && isOwner(userId)
+        && isValidUserWorkspace(incoming(), userId)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(userId)
+        && isOwner(userId)
+        && isValidUserWorkspace(incoming(), userId)
+        && incoming().ownerId == existing().ownerId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['settings', 'email', 'displayName', 'updatedAt']);
+      allow delete: if isValidId(userId) && isOwner(userId) && existing().ownerId == request.auth.uid;
+
+      match /classes/{classId} {
+        allow get: if isValidId(userId) && isValidId(classId) && isOwner(userId) && existing().ownerId == request.auth.uid;
+        allow list: if isValidId(userId) && isOwner(userId) && resource.data.ownerId == request.auth.uid;
+        allow create: if isValidId(userId) && isValidId(classId)
+          && isOwner(userId)
+          && isValidClassroom(incoming(), classId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && existsAfter(/databases/$(database)/documents/users/$(userId));
+        allow update: if isValidId(userId) && isValidId(classId)
+          && isOwner(userId)
+          && isValidClassroom(incoming(), classId)
+          && incoming().ownerId == existing().ownerId
+          && incoming().id == existing().id
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'subjects', 'students', 'updatedAt'])
+          && exists(/databases/$(database)/documents/users/$(userId));
+        allow delete: if isValidId(userId) && isValidId(classId)
+          && isOwner(userId)
+          && existing().ownerId == request.auth.uid
+          && exists(/databases/$(database)/documents/users/$(userId));
+      }
+
+      match /tests/{testId} {
+        allow get: if isValidId(userId) && isValidId(testId) && isOwner(userId) && existing().ownerId == request.auth.uid;
+        allow list: if isValidId(userId) && isOwner(userId) && resource.data.ownerId == request.auth.uid;
+        allow create: if isValidId(userId) && isValidId(testId)
+          && isOwner(userId)
+          && isValidTestRecord(incoming(), testId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && existsAfter(/databases/$(database)/documents/users/$(userId))
+          && existsAfter(/databases/$(database)/documents/users/$(userId)/classes/$(incoming().classId));
+        allow update: if isValidId(userId) && isValidId(testId)
+          && isOwner(userId)
+          && isValidTestRecord(incoming(), testId)
+          && incoming().ownerId == existing().ownerId
+          && incoming().id == existing().id
+          && incoming().classId == existing().classId
+          && incoming().clientCreatedAt == existing().clientCreatedAt
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'name',
+            'date',
+            'subjectTotals',
+            'passPercentage',
+            'marks',
+            'remarks',
+            'attendance',
+            'updatedAt'
+          ])
+          && exists(/databases/$(database)/documents/users/$(userId));
+        allow delete: if isValidId(userId) && isValidId(testId)
+          && isOwner(userId)
+          && existing().ownerId == request.auth.uid
+          && exists(/databases/$(database)/documents/users/$(userId));
+      }
+    }
+  }
+}

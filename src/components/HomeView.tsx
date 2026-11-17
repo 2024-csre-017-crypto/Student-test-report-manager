@@ -7,6 +7,7 @@ import { computeTestResults } from '../utils/calculations';
 interface HomeViewProps {
   data: AppData;
   t: Translations;
+  accountEmail?: string | null;
   onNewTest: (classId?: string) => void;
   onOpenClass: (classId: string) => void;
   onOpenTestMarks: (testId: string) => void;
@@ -18,6 +19,7 @@ interface HomeViewProps {
 export const HomeView: React.FC<HomeViewProps> = ({
   data,
   t,
+  accountEmail,
   onNewTest,
   onOpenClass,
   onOpenTestMarks,
@@ -73,7 +75,9 @@ export const HomeView: React.FC<HomeViewProps> = ({
                   {data.settings.schoolName || t.appName}
                 </h1>
                 <p className="text-xs sm:text-sm text-slate-300 mt-0.5">
-                  {t.localNotice}
+                  {accountEmail
+                    ? `Signed in as ${accountEmail} · Work saved automatically across sessions.`
+                    : t.localNotice}
                 </p>
               </div>
             </div>

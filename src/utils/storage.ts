@@ -1,6 +1,27 @@
 import { AppData, AppSettings, Classroom, GradeBand, TestRecord } from '../types';
 
 const STORAGE_KEY = 'student_result_manager_data_v1';
+const LOCAL_MODE_KEY = 'student_result_manager_local_mode_v1';
+
+export function getLocalOnlyPreference(): boolean {
+  try {
+    return localStorage.getItem(LOCAL_MODE_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+export function setLocalOnlyPreference(enabled: boolean): void {
+  try {
+    if (enabled) {
+      localStorage.setItem(LOCAL_MODE_KEY, 'true');
+    } else {
+      localStorage.removeItem(LOCAL_MODE_KEY);
+    }
+  } catch {
+    // Ignore storage errors
+  }
+}
 
 export const DEFAULT_GRADING_SCALE: GradeBand[] = [
   { grade: 'A+', minPercentage: 80 },
@@ -33,9 +54,10 @@ export function createEmptyAppData(): AppData {
   };
 }
 
-export function loadAppData(): AppData {
+export function loadAppData(uid?: string): AppData {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const key = uid ? `${STORAGE_KEY}_${uid}` : STORAGE_KEY;
+    const raw = localStorage.getItem(key);
     if (!raw) return createEmptyAppData();
     const parsed = JSON.parse(raw) as Partial<AppData>;
     return normalizeAppData(parsed);
@@ -44,9 +66,10 @@ export function loadAppData(): AppData {
   }
 }
 
-export function saveAppData(data: AppData): void {
+export function saveAppData(data: AppData, uid?: string): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    const key = uid ? `${STORAGE_KEY}_${uid}` : STORAGE_KEY;
+    localStorage.setItem(key, JSON.stringify(data));
   } catch (err) {
     console.error('Failed to save to localStorage:', err);
   }
