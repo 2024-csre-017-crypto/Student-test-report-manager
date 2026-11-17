@@ -31,8 +31,11 @@ jobs:
           if [ -f package-lock.json ]; then
             npm ci
           else
-            npm install
+            npm install --no-audit --no-fund
           fi
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
 
       - name: Build single-file bundle
         run: npm run build
