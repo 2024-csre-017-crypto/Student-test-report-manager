@@ -1,0 +1,8 @@
+{
+  "name": "Student Test Result Manager",
+  "description": "Mobile-first student test marks recorder, results analyzer, and printable A4 report card generator.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
